@@ -47,15 +47,15 @@ class DDPM(BaseModel):
 
     def optimize_parameters(self):
         self.optG.zero_grad()
-        l_pix = self.netG(self.data)
+        loss = self.netG(self.data)
         # need to average in multi-gpu
         b, c, t = self.data['HR'].shape
-        l_pix = l_pix.sum()/int(b*c*t)
-        l_pix.backward()
+        loss = loss.sum()/int(b*c*t)
+        loss.backward()
         self.optG.step()
 
         # set log
-        self.log_dict['l_pix'] = l_pix.item()
+        self.log_dict['loss'] = loss.item()
 
     def test(self, continous=False):
         self.netG.eval()
