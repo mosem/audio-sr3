@@ -49,8 +49,8 @@ class DDPM(BaseModel):
         self.optG.zero_grad()
         l_pix = self.netG(self.data)
         # need to average in multi-gpu
-        b, c, h, w = self.data['HR'].shape
-        l_pix = l_pix.sum()/int(b*c*h*w)
+        b, c, t = self.data['HR'].shape
+        l_pix = l_pix.sum()/int(b*c*t)
         l_pix.backward()
         self.optG.step()
 

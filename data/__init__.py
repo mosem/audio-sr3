@@ -24,11 +24,13 @@ def create_dataloader(dataset, dataset_opt, phase):
 def create_dataset(dataset_opt, phase):
     '''create dataset'''
     mode = dataset_opt['mode']
-    from data.LRHR_dataset import LRHRDataset as D
-    dataset = D(dataroot=dataset_opt['dataroot'],
-                datatype=dataset_opt['datatype'],
-                l_resolution=dataset_opt['l_resolution'],
-                r_resolution=dataset_opt['r_resolution'],
+    # from data.LRHR_dataset import LRHRDataset as D
+    from data.LRHR_audio_dataset import LRHRAudioDataset as D
+    dataset = D(json_dir=dataset_opt['json_dir'],
+                lr_sr=dataset_opt['lr_sr'],
+                hr_sr=dataset_opt['hr_sr'],
+                segment=dataset_opt['segment'] if 'segment' in dataset_opt else None,
+                stride=dataset_opt['stride'] if 'stride' in dataset_opt else None,
                 split=phase,
                 data_len=dataset_opt['data_len'],
                 need_LR=(mode == 'LRHR')
