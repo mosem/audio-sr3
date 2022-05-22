@@ -3,6 +3,7 @@ import core.metrics as Metrics
 from PIL import Image
 import numpy as np
 import glob
+#TODO: adapt this to audio
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', type=str,

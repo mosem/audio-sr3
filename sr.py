@@ -62,9 +62,15 @@ if __name__ == "__main__":
                 val_set, dataset_opt, phase)
     logger.info('Initial Dataset Finished')
 
+    lr_sr = opt['datasets']['val']['lr_sr']
+    hr_sr = opt['datasets']['val']['hr_sr']
+
     # model
     diffusion = Model.create_model(opt)
     logger.info('Initial Model Finished')
+    n_params = sum(p.numel() for p in diffusion.netG.parameters() if p.requires_grad)
+    mb = n_params * 4 / 2 ** 20
+    logger.info(f"{opt['model']['which_model_G']}: parameters: {n_params}, size: {mb} MB")
 
     # Train
     current_step = diffusion.begin_step
@@ -101,7 +107,7 @@ if __name__ == "__main__":
 
                 # validation
                 if current_step % opt['train']['val_freq'] == 0:
-                    avg_psnr = 0.0
+                    avg_sisnr = 0.0
                     idx = 0
                     result_path = '{}/{}'.format(opt['path']
                                                  ['results'], current_epoch)
@@ -114,48 +120,51 @@ if __name__ == "__main__":
                         diffusion.feed_data(val_data)
                         diffusion.test(continous=False)
                         visuals = diffusion.get_current_visuals()
-                        sr_img = Metrics.tensor2img(visuals['SR'])  # uint8
-                        hr_img = Metrics.tensor2img(visuals['HR'])  # uint8
-                        lr_img = Metrics.tensor2img(visuals['LR'])  # uint8
-                        fake_img = Metrics.tensor2img(visuals['INF'])  # uint8
+                        # TODO: change Metrics to support audio: tensor2audio, save_audio, caclulate_sisnr, calculate_lsd, calculate_visqol (?)
+                        sr_audio = Metrics.tensor2audio(visuals['SR'])  # uint8
+                        hr_audio = Metrics.tensor2audio(visuals['HR'])  # uint8
+                        lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
+                        fake_audio = Metrics.tensor2audio(visuals['INF'])  # uint8
+
+
 
                         # generation
-                        Metrics.save_img(
-                            hr_img, '{}/{}_{}_hr.png'.format(result_path, current_step, idx))
-                        Metrics.save_img(
-                            sr_img, '{}/{}_{}_sr.png'.format(result_path, current_step, idx))
-                        Metrics.save_img(
-                            lr_img, '{}/{}_{}_lr.png'.format(result_path, current_step, idx))
-                        Metrics.save_img(
-                            fake_img, '{}/{}_{}_inf.png'.format(result_path, current_step, idx))
-                        tb_logger.add_image(
-                            'Iter_{}'.format(current_step),
-                            np.transpose(np.concatenate(
-                                (fake_img, sr_img, hr_img), axis=1), [2, 0, 1]),
-                            idx)
-                        avg_psnr += Metrics.calculate_psnr(
-                            sr_img, hr_img)
+                        Metrics.save_audio(
+                            hr_audio, '{}/{}_{}_hr.wav'.format(result_path, current_step, idx), hr_sr)
+                        Metrics.save_audio(
+                            sr_audio, '{}/{}_{}_sr.wav'.format(result_path, current_step, idx), hr_sr)
+                        Metrics.save_audio(
+                            lr_audio, '{}/{}_{}_lr.wav'.format(result_path, current_step, idx), lr_sr)
+                        Metrics.save_audio(
+                            fake_audio, '{}/{}_{}_inf.wav'.format(result_path, current_step, idx), hr_sr)
+                        #TODO: fix this
+                        # tb_logger.add_image(
+                        #     'Iter_{}'.format(current_step),
+                        #     np.transpose(np.concatenate(
+                        #         (fake_audio, sr_audio, hr_audio), axis=1), [2, 0, 1]),
+                        #     idx)
+                        avg_sisnr += Metrics.calculate_sisnr(sr_audio, hr_audio)
 
                         if wandb_logger:
                             wandb_logger.log_image(
                                 f'validation_{idx}', 
-                                np.concatenate((fake_img, sr_img, hr_img), axis=1)
+                                np.concatenate((fake_audio, sr_audio, hr_audio), axis=1)
                             )
 
-                    avg_psnr = avg_psnr / idx
+                    avg_sisnr = avg_sisnr / idx
                     diffusion.set_new_noise_schedule(
                         opt['model']['beta_schedule']['train'], schedule_phase='train')
                     # log
-                    logger.info('# Validation # PSNR: {:.4e}'.format(avg_psnr))
+                    logger.info('# Validation # SISNR: {:.4e}'.format(avg_sisnr))
                     logger_val = logging.getLogger('val')  # validation logger
-                    logger_val.info('<epoch:{:3d}, iter:{:8,d}> psnr: {:.4e}'.format(
-                        current_epoch, current_step, avg_psnr))
+                    logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4e}'.format(
+                        current_epoch, current_step, avg_sisnr))
                     # tensorboard logger
-                    tb_logger.add_scalar('psnr', avg_psnr, current_step)
+                    tb_logger.add_scalar('sisnr', avg_sisnr, current_step)
 
                     if wandb_logger:
                         wandb_logger.log_metrics({
-                            'validation/val_psnr': avg_psnr,
+                            'validation/val_sisnr': avg_sisnr,
                             'validation/val_step': val_step
                         })
                         val_step += 1
@@ -174,8 +183,8 @@ if __name__ == "__main__":
         logger.info('End of training.')
     else:
         logger.info('Begin Model Evaluation.')
-        avg_psnr = 0.0
-        avg_ssim = 0.0
+        avg_sisnr = 0.0
+        avg_lsd = 0.0
         idx = 0
         result_path = '{}'.format(opt['path']['results'])
         os.makedirs(result_path, exist_ok=True)
@@ -185,57 +194,58 @@ if __name__ == "__main__":
             diffusion.test(continous=True)
             visuals = diffusion.get_current_visuals()
 
-            hr_img = Metrics.tensor2img(visuals['HR'])  # uint8
-            lr_img = Metrics.tensor2img(visuals['LR'])  # uint8
-            fake_img = Metrics.tensor2img(visuals['INF'])  # uint8
+            hr_audio = Metrics.tensor2audio(visuals['HR'])  # uint8
+            lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
+            fake_audio = Metrics.tensor2audio(visuals['INF'])  # uint8
 
             sr_img_mode = 'grid'
             if sr_img_mode == 'single':
                 # single img series
-                sr_img = visuals['SR']  # uint8
-                sample_num = sr_img.shape[0]
+                sr_audio = visuals['SR']  # uint8
+                sample_num = sr_audio.shape[0]
                 for iter in range(0, sample_num):
-                    Metrics.save_img(
-                        Metrics.tensor2img(sr_img[iter]), '{}/{}_{}_sr_{}.png'.format(result_path, current_step, idx, iter))
+                    Metrics.save_audio(
+                        Metrics.tensor2audio(sr_audio[iter]), '{}/{}_{}_sr_{}.wav'.format(result_path, current_step, idx, iter), hr_sr)
             else:
                 # grid img
-                sr_img = Metrics.tensor2img(visuals['SR'])  # uint8
-                Metrics.save_img(
-                    sr_img, '{}/{}_{}_sr_process.png'.format(result_path, current_step, idx))
-                Metrics.save_img(
-                    Metrics.tensor2img(visuals['SR'][-1]), '{}/{}_{}_sr.png'.format(result_path, current_step, idx))
+                sr_audio = Metrics.tensor2audio(visuals['SR'])  # uint8
+                Metrics.save_audio(
+                    sr_audio, '{}/{}_{}_sr_process.wav'.format(result_path, current_step, idx), hr_sr)
+                Metrics.save_audio(
+                    Metrics.tensor2audio(visuals['SR'][-1]), '{}/{}_{}_sr.wav'.format(result_path, current_step, idx), hr_sr)
 
-            Metrics.save_img(
-                hr_img, '{}/{}_{}_hr.png'.format(result_path, current_step, idx))
-            Metrics.save_img(
-                lr_img, '{}/{}_{}_lr.png'.format(result_path, current_step, idx))
-            Metrics.save_img(
-                fake_img, '{}/{}_{}_inf.png'.format(result_path, current_step, idx))
+            Metrics.save_audio(
+                hr_audio, '{}/{}_{}_hr.wav'.format(result_path, current_step, idx), hr_sr)
+            Metrics.save_audio(
+                lr_audio, '{}/{}_{}_lr.wav'.format(result_path, current_step, idx), lr_sr)
+            Metrics.save_audio(
+                fake_audio, '{}/{}_{}_inf.wav'.format(result_path, current_step, idx),hr_sr)
 
             # generation
-            eval_psnr = Metrics.calculate_psnr(Metrics.tensor2img(visuals['SR'][-1]), hr_img)
-            eval_ssim = Metrics.calculate_ssim(Metrics.tensor2img(visuals['SR'][-1]), hr_img)
+            eval_sisnr = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
+            eval_lsd = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
 
-            avg_psnr += eval_psnr
-            avg_ssim += eval_ssim
+            avg_sisnr += eval_sisnr
+            avg_lsd += eval_lsd
 
             if wandb_logger and opt['log_eval']:
-                wandb_logger.log_eval_data(fake_img, Metrics.tensor2img(visuals['SR'][-1]), hr_img, eval_psnr, eval_ssim)
+                wandb_logger.log_eval_data(fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio, avg_sisnr,
+                                           avg_lsd)
 
-        avg_psnr = avg_psnr / idx
-        avg_ssim = avg_ssim / idx
+        avg_sisnr = avg_sisnr / idx
+        avg_lsd = avg_lsd / idx
 
         # log
-        logger.info('# Validation # PSNR: {:.4e}'.format(avg_psnr))
-        logger.info('# Validation # SSIM: {:.4e}'.format(avg_ssim))
+        logger.info('# Validation # SISNR: {:.4e}'.format(avg_sisnr))
+        logger.info('# Validation # LSD: {:.4e}'.format(avg_lsd))
         logger_val = logging.getLogger('val')  # validation logger
-        logger_val.info('<epoch:{:3d}, iter:{:8,d}> psnr: {:.4e}, ssim：{:.4e}'.format(
-            current_epoch, current_step, avg_psnr, avg_ssim))
+        logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4e}, lsd：{:.4e}'.format(
+            current_epoch, current_step, avg_sisnr, avg_lsd))
 
         if wandb_logger:
             if opt['log_eval']:
                 wandb_logger.log_eval_table()
             wandb_logger.log_metrics({
-                'PSNR': float(avg_psnr),
-                'SSIM': float(avg_ssim)
+                'SISNR': float(avg_sisnr),
+                'LSD': float(avg_lsd)
             })

@@ -3,6 +3,8 @@ import math
 import numpy as np
 import cv2
 from torchvision.utils import make_grid
+import torchaudio
+import torch
 
 
 def tensor2img(tensor, out_type=np.uint8, min_max=(-1, 1)):
@@ -32,6 +34,82 @@ def tensor2img(tensor, out_type=np.uint8, min_max=(-1, 1)):
         img_np = (img_np * 255.0).round()
         # Important. Unlike matlab, numpy.unit8() WILL NOT round by default.
     return img_np.astype(out_type)
+
+
+def tensor2audio(tensor, min_max=(-1, 1)):
+    tensor = tensor.squeeze().float().cpu().clamp_(*min_max)  # clamp
+    # tensor = (tensor - min_max[0]) / (min_max[1] - min_max[0])  # to range [0,1]
+    tensor = tensor.unsqueeze(dim=0)
+    return tensor
+
+def save_audio(wav, filename, sr):
+    wav = wav / max(wav.abs().max().item(), 1)
+    torchaudio.save(filename, wav.cpu(), sr)
+
+
+def calculate_sisnr(out_sig, ref_sig, eps=1e-8):
+    """Calcuate Scale-Invariant Source-to-Noise Ratio (SI-SNR)
+    Args:
+        out_sig: vector (torch.Tensor), enhanced signal [B,T]
+        ref_sig: vector (torch.Tensor), reference signal(ground truth) [B,T]
+    Returns:
+        SISNR
+    """
+    out_sig = out_sig.numpy()
+    ref_sig = ref_sig.numpy()
+    assert len(ref_sig) == len(out_sig)
+    B, T = ref_sig.shape
+    ref_sig = ref_sig - np.mean(ref_sig, axis=1).reshape(B, 1)
+    out_sig = out_sig - np.mean(out_sig, axis=1).reshape(B, 1)
+    ref_energy = (np.sum(ref_sig ** 2, axis=1) + eps).reshape(B, 1)
+    proj = (np.sum(ref_sig * out_sig, axis=1).reshape(B, 1)) * \
+           ref_sig / ref_energy
+    noise = out_sig - proj
+    ratio = np.sum(proj ** 2, axis=1) / (np.sum(noise ** 2, axis=1) + eps)
+    sisnr = 10 * np.log(ratio + eps) / np.log(10.0)
+    return sisnr.mean()
+
+
+def stft(x, fft_size, hop_size, win_length, window):
+    """Perform STFT and convert to magnitude spectrogram.
+    Args:
+        x (Tensor): Input signal tensor (B, T).
+        fft_size (int): FFT size.
+        hop_size (int): Hop size.
+        win_length (int): Window length.
+        window (str): Window function type.
+    Returns:
+        Tensor: Magnitude spectrogram (B, #frames, fft_size // 2 + 1).
+    """
+    x_stft = torch.stft(x, fft_size, hop_size, win_length, window)
+    real = x_stft[..., 0]
+    imag = x_stft[..., 1]
+
+    # NOTE(kan-bayashi): clamp is needed to avoid nan or inf
+    return torch.sqrt(torch.clamp(real ** 2 + imag ** 2, min=1e-7)).transpose(2, 1)
+
+
+def calculate_lsd(out_sig, ref_sig):
+    """
+       Compute LSD (log spectral distance)
+       Arguments:
+           out_sig: vector (torch.Tensor), enhanced signal [B,T]
+           ref_sig: vector (torch.Tensor), reference signal(ground truth) [B,T]
+    """
+
+    fft_size = 1024
+    shift_size = 120
+    win_length = 600
+    window = torch.hann_window(win_length)
+
+    X = torch.log(torch.pow(torch.abs(stft(out_sig, fft_size, shift_size, win_length, window)), 2))
+    Y = torch.log(torch.pow(torch.abs(stft(ref_sig, fft_size, shift_size, win_length, window)), 2))
+
+    diff = torch.pow(X - Y, 2)
+    sum_freq = torch.sqrt(torch.sum(diff, dim=-1) / diff.size(-1))
+    value = torch.sum(sum_freq, dim=-1) / sum_freq.size(-1)
+
+    return value
 
 
 def save_img(img, img_path, mode='RGB'):
