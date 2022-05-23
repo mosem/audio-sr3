@@ -1,10 +1,17 @@
 import os
 import math
+import subprocess
+
 import numpy as np
 import cv2
+import sox as sox
 from torchvision.utils import make_grid
 import torchaudio
 import torch
+
+import logging
+
+logger = logging.getLogger('base')
 
 
 def tensor2audio(tensor, min_max=(-1, 1)):
@@ -82,6 +89,49 @@ def calculate_lsd(out_sig, ref_sig):
 
     return value if value.shape[-1] > 1 else value.item()
 
+
+VISQOL_PATH = "/cs/labs/adiyoss/moshemandel/visqol-master; "
+
+# from: https://github.com/eagomez2/upf-smc-speech-enhancement-thesis/blob/main/src/utils/evaluation_process.py
+def calculate_visqol(out_sig, ref_sig, filename, sr):
+    tmp_reference = f"{filename}_ref.wav"
+    tmp_estimation = f"{filename}_est.wav"
+
+    reference_abs_path = os.path.abspath(tmp_reference)
+    estimation_abs_path = os.path.abspath(tmp_estimation)
+
+    tfm = sox.Transformer()
+    tfm.convert(bitdepth=16)
+    ref_sig = np.transpose(ref_sig)
+    out_sig = np.transpose(out_sig)
+    try:
+        tfm.build_file(input_array=ref_sig, sample_rate_in=sr, output_filepath=reference_abs_path)
+        tfm.build_file(input_array=out_sig, sample_rate_in=sr, output_filepath=estimation_abs_path)
+
+        visqol_cmd = ("cd " + VISQOL_PATH +
+                      "./bazel-bin/visqol "
+                      f"--reference_file {reference_abs_path} "
+                      f"--degraded_file {estimation_abs_path} "
+                      f"--use_speech_mode")
+
+        visqol = subprocess.run(visqol_cmd, shell=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        # parse stdout to get the current float value
+        visqol = visqol.stdout.decode("utf-8").split("\t")[-1].replace("\n", "")
+        visqol = float(visqol)
+
+    except Exception as e:
+        logger.info(f'failed to get visqol of {filename}')
+        logger.info(str(e))
+        visqol = 0
+
+    else:
+        # remove files to avoid filling space storage
+        os.remove(reference_abs_path)
+        os.remove(estimation_abs_path)
+
+    return visqol
 
 def tensor2img(tensor, out_type=np.uint8, min_max=(-1, 1)):
     '''

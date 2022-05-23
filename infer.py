@@ -78,7 +78,6 @@ if __name__ == "__main__":
         fake_audio = Metrics.tensor2audio(visuals['INF'])
 
         sr_audio = visuals['SR']
-        logger.info(f'sr audio shape:{sr_audio.shape}')
 
         sr_img_mode = 'grid'
         if sr_img_mode == 'grid':
