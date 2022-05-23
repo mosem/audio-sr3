@@ -61,6 +61,10 @@ if __name__ == "__main__":
             val_loader = Data.create_dataloader(
                 val_set, dataset_opt, phase)
     logger.info('Initial Dataset Finished')
+    logger.info(f'train set length: {len(train_set)}')
+    logger.info(f'train loader length: {len(train_loader)}')
+    logger.info(f'val set length: {len(val_set)}')
+    logger.info(f'val loader length: {len(val_loader)}')
 
     lr_sr = opt['datasets']['val']['lr_sr']
     hr_sr = opt['datasets']['val']['hr_sr']
@@ -115,12 +119,13 @@ if __name__ == "__main__":
 
                     diffusion.set_new_noise_schedule(
                         opt['model']['beta_schedule']['val'], schedule_phase='val')
+                    logger.info(f'val loader length: {len(val_loader)}, index: {idx}')
                     for _,  val_data in enumerate(val_loader):
                         idx += 1
                         diffusion.feed_data(val_data)
                         diffusion.test(continous=False)
                         visuals = diffusion.get_current_visuals()
-                        # TODO: change Metrics to support audio: tensor2audio, save_audio, caclulate_sisnr, calculate_lsd, calculate_visqol (?)
+
                         sr_audio = Metrics.tensor2audio(visuals['SR'])  # uint8
                         hr_audio = Metrics.tensor2audio(visuals['HR'])  # uint8
                         lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
@@ -150,6 +155,7 @@ if __name__ == "__main__":
                                 f'validation_{idx}', 
                                 np.concatenate((fake_audio, sr_audio, hr_audio), axis=1)
                             )
+                    logger.info(f'done iterating on val loader. index: {idx}')
 
                     avg_sisnr = avg_sisnr / idx
                     diffusion.set_new_noise_schedule(

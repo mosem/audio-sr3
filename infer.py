@@ -56,11 +56,15 @@ if __name__ == "__main__":
 
     diffusion.set_new_noise_schedule(
         opt['model']['beta_schedule']['val'], schedule_phase='val')
+
+    lr_sr = opt['datasets']['val']['lr_sr']
+    hr_sr = opt['datasets']['val']['hr_sr']
     
     logger.info('Begin Model Inference.')
     current_step = 0
     current_epoch = 0
     idx = 0
+
 
     result_path = '{}'.format(opt['path']['results'])
     os.makedirs(result_path, exist_ok=True)
@@ -70,32 +74,31 @@ if __name__ == "__main__":
         diffusion.test(continous=True)
         visuals = diffusion.get_current_visuals(need_LR=False)
 
-        hr_img = Metrics.tensor2img(visuals['HR'])  # uint8
-        fake_img = Metrics.tensor2img(visuals['INF'])  # uint8
+        hr_audio = Metrics.tensor2audio(visuals['HR'])
+        fake_audio = Metrics.tensor2audio(visuals['INF'])
+
+        sr_audio = visuals['SR']
+        logger.info(f'sr audio shape:{sr_audio.shape}')
 
         sr_img_mode = 'grid'
-        if sr_img_mode == 'single':
-            # single img series
-            sr_img = visuals['SR']  # uint8
-            sample_num = sr_img.shape[0]
-            for iter in range(0, sample_num):
-                Metrics.save_img(
-                    Metrics.tensor2img(sr_img[iter]), '{}/{}_{}_sr_{}.png'.format(result_path, current_step, idx, iter))
-        else:
-            # grid img
-            sr_img = Metrics.tensor2img(visuals['SR'])  # uint8
-            Metrics.save_img(
-                sr_img, '{}/{}_{}_sr_process.png'.format(result_path, current_step, idx))
-            Metrics.save_img(
-                Metrics.tensor2img(visuals['SR'][-1]), '{}/{}_{}_sr.png'.format(result_path, current_step, idx))
+        if sr_img_mode == 'grid':
+            sample_num = sr_audio.shape[0]
+            for iter in range(0, sample_num-1):
+                Metrics.save_audio(
+                    Metrics.tensor2audio(sr_audio[iter]),
+                    '{}/{}_{}_sr_process_{}.wav'.format(result_path, current_step, idx, iter), hr_sr)
 
-        Metrics.save_img(
-            hr_img, '{}/{}_{}_hr.png'.format(result_path, current_step, idx))
-        Metrics.save_img(
-            fake_img, '{}/{}_{}_inf.png'.format(result_path, current_step, idx))
+        Metrics.save_audio(
+            Metrics.tensor2audio(sr_audio[-1]),
+            '{}/{}_{}_sr.wav'.format(result_path, current_step, idx), hr_sr)
+
+        Metrics.save_audio(
+            hr_audio, '{}/{}_{}_hr.wav'.format(result_path, current_step, idx), hr_sr)
+        Metrics.save_audio(
+            fake_audio, '{}/{}_{}_inf.wav'.format(result_path, current_step, idx), hr_sr)
 
         if wandb_logger and opt['log_infer']:
-            wandb_logger.log_eval_data(fake_img, Metrics.tensor2img(visuals['SR'][-1]), hr_img)
+            wandb_logger.log_eval_data(fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
 
     if wandb_logger and opt['log_infer']:
         wandb_logger.log_eval_table(commit=True)
