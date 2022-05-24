@@ -21,13 +21,13 @@ echo "saving to $mode/${out_dir}"
 tr_out=../egs/vctk/$mode/$out_dir/tr
 val_out=../egs/vctk/$mode/$out_dir/val
 
-lr_train_files=../dataset-audio/$mode/train-files-lr_${lr}.txt
-sr_train_files=../dataset-audio/$mode/train-files-sr_${lr}_${hr}.txt
-hr_train_files=../dataset-audio/$mode/train-files-hr_${hr}.txt
+lr_train_files=../dataset-audio/$mode/train-files-${lr}.txt
+sr_train_files=../dataset-audio/$mode/train-files-${lr}_${hr}.txt
+hr_train_files=../dataset-audio/$mode/train-files-${hr}.txt
 
-lr_val_files=../dataset-audio/$mode/val-files-lr_${lr}.txt
-sr_val_files=../dataset-audio/$mode/val-files-sr_${lr}_${hr}.txt
-hr_val_files=../dataset-audio/$mode/val-files-hr_${hr}.txt
+lr_val_files=../dataset-audio/$mode/val-files-${lr}.txt
+sr_val_files=../dataset-audio/$mode/val-files-${lr}_${hr}.txt
+hr_val_files=../dataset-audio/$mode/val-files-${hr}.txt
 
 mkdir -p $tr_out
 mkdir -p $val_out

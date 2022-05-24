@@ -102,7 +102,7 @@ if __name__ == "__main__":
                     message = '<epoch:{:3d}, iter:{:8,d}> '.format(
                         current_epoch, current_step)
                     for k, v in logs.items():
-                        message += '{:s}: {:.4e} '.format(k, v)
+                        message += '{:s}: {:.4} '.format(k, float(v))
                         tb_logger.add_scalar(k, v, current_step)
                     logger.info(message)
 
@@ -112,6 +112,8 @@ if __name__ == "__main__":
                 # validation
                 if current_step % opt['train']['val_freq'] == 0:
                     avg_sisnr = 0.0
+                    avg_lsd = 0.0
+                    avg_visqol = 0.0
                     idx = 0
                     result_path = '{}/{}'.format(opt['path']
                                                  ['results'], current_epoch)
@@ -119,7 +121,6 @@ if __name__ == "__main__":
 
                     diffusion.set_new_noise_schedule(
                         opt['model']['beta_schedule']['val'], schedule_phase='val')
-                    logger.info(f'val loader length: {len(val_loader)}, index: {idx}')
                     for _,  val_data in enumerate(val_loader):
                         idx += 1
                         diffusion.feed_data(val_data)
@@ -148,32 +149,44 @@ if __name__ == "__main__":
                         #     np.transpose(np.concatenate(
                         #         (fake_audio, sr_audio, hr_audio), axis=1), [2, 0, 1]),
                         #     idx)
-                        avg_sisnr += Metrics.calculate_sisnr(sr_audio, hr_audio)
+
+                        filename = f'validation_{idx}'
+
+                        sisnr = Metrics.calculate_sisnr(sr_audio, hr_audio)
+                        lsd = Metrics.calculate_lsd(sr_audio, hr_audio)
+                        visqol = Metrics.calculate_visqol(sr_audio.numpy(), hr_audio.numpy(), filename, hr_sr)
+                        avg_sisnr += sisnr
+                        avg_lsd += lsd
+                        avg_visqol += visqol
 
                         if wandb_logger:
-                            wandb_logger.log_image(
-                                f'validation_{idx}', 
-                                np.concatenate((fake_audio, sr_audio, hr_audio), axis=1)
-                            )
-                    logger.info(f'done iterating on val loader. index: {idx}')
+                            wandb_logger.log_audio(filename, sr_audio, hr_audio, fake_audio, sisnr, lsd, visqol,
+                                                   current_step, hr_sr)
 
                     avg_sisnr = avg_sisnr / idx
+                    avg_lsd = avg_lsd / idx
+                    avg_visqol = avg_visqol / idx
                     diffusion.set_new_noise_schedule(
                         opt['model']['beta_schedule']['train'], schedule_phase='train')
                     # log
-                    logger.info('# Validation # SISNR: {:.4e}'.format(avg_sisnr))
+                    logger.info('# Validation # SISNR: {:.4}, LSD: {:.4}, VISQOL: {:.4}'.format(
+                        avg_sisnr, avg_lsd, avg_visqol))
                     logger_val = logging.getLogger('val')  # validation logger
-                    logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4e}'.format(
-                        current_epoch, current_step, avg_sisnr))
+                    logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4}, lsd: {:.4}, visqol: {:.4}'.format(
+                        current_epoch, current_step, avg_sisnr, avg_lsd, avg_visqol))
                     # tensorboard logger
                     tb_logger.add_scalar('sisnr', avg_sisnr, current_step)
 
                     if wandb_logger:
+
                         wandb_logger.log_metrics({
                             'validation/val_sisnr': avg_sisnr,
+                            'validation/val_lsd': avg_lsd,
+                            'validation/val_visqol': avg_visqol,
                             'validation/val_step': val_step
                         })
                         val_step += 1
+
 
                 if current_step % opt['train']['save_checkpoint_freq'] == 0:
                     logger.info('Saving models and training states.')
@@ -191,6 +204,7 @@ if __name__ == "__main__":
         logger.info('Begin Model Evaluation.')
         avg_sisnr = 0.0
         avg_lsd = 0.0
+        avg_visqol = 0.0
         idx = 0
         result_path = '{}'.format(opt['path']['results'])
         os.makedirs(result_path, exist_ok=True)
@@ -227,31 +241,37 @@ if __name__ == "__main__":
             Metrics.save_audio(
                 fake_audio, '{}/{}_{}_inf.wav'.format(result_path, current_step, idx),hr_sr)
 
+            filename = f"{current_step}_{idx}"
             # generation
             eval_sisnr = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
-            eval_lsd = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
+            eval_lsd = Metrics.calculate_lsd(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
+            eval_visqol = Metrics.calculate_visqol(Metrics.tensor2audio(visuals['SR'][-1]).numpy(), hr_audio.numpy(), filename, hr_sr)
 
             avg_sisnr += eval_sisnr
             avg_lsd += eval_lsd
+            avg_visqol += eval_visqol
 
             if wandb_logger and opt['log_eval']:
-                wandb_logger.log_eval_data(fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio, avg_sisnr,
-                                           avg_lsd)
+                wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio, eval_sisnr,
+                                           eval_lsd, eval_visqol)
 
         avg_sisnr = avg_sisnr / idx
         avg_lsd = avg_lsd / idx
+        avg_visqol = avg_visqol / idx
 
         # log
-        logger.info('# Validation # SISNR: {:.4e}'.format(avg_sisnr))
-        logger.info('# Validation # LSD: {:.4e}'.format(avg_lsd))
+        logger.info('# Validation # SISNR: {:.4}'.format(avg_sisnr))
+        logger.info('# Validation # LSD: {:.4}'.format(avg_lsd))
+        logger.info('# Validation # VISQOL: {:.4}'.format(avg_visqol))
         logger_val = logging.getLogger('val')  # validation logger
-        logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4e}, lsd：{:.4e}'.format(
-            current_epoch, current_step, avg_sisnr, avg_lsd))
+        logger_val.info('<epoch:{:3d}, iter:{:8,d}> sisnr: {:.4}, lsd：{:.4}, visqol：{:.4}'.format(
+            current_epoch, current_step, avg_sisnr, avg_lsd, avg_visqol))
 
         if wandb_logger:
             if opt['log_eval']:
                 wandb_logger.log_eval_table()
             wandb_logger.log_metrics({
                 'SISNR': float(avg_sisnr),
-                'LSD': float(avg_lsd)
+                'LSD': float(avg_lsd),
+                'VISQOL': float(avg_visqol)
             })

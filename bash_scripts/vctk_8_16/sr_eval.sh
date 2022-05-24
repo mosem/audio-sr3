@@ -4,4 +4,4 @@
 
 cd /cs/labs/adiyoss/moshemandel/sr3-audio/code
 
-python eval.py -p /cs/labs/adiyoss/moshemandel/sr3-audio/code/experiments/sr_vctk_220523_191123/results
+python eval.py -p /cs/labs/adiyoss/moshemandel/sr3-audio/code/experiments/sr_vctk_220524_084426/results

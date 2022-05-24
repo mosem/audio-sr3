@@ -90,7 +90,7 @@
     }
   },
   "train": {
-    "n_iter": 200,
+    "n_iter": 400,
     "val_freq": 100,
     "save_checkpoint_freq": 1e4,
     "print_freq": 100,
@@ -106,6 +106,8 @@
     }
   },
   "wandb": {
-    "project": "sr_vctk"
+    "project": "sr3-audio",
+    "group": "single-speaker-8-16",
+    "name": "dummy"
   }
 }

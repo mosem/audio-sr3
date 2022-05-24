@@ -1,9 +1,12 @@
 {
   "name": "sr_vctk",
-  "phase": "train",
+  "phase": "val",
   // train or val
   "gpu_ids": [
-    0,1,2,3
+    0,
+    1,
+    2,
+    3
   ],
   "path": {
     //set the path
@@ -11,7 +14,7 @@
     "tb_logger": "tb_logger",
     "results": "results",
     "checkpoint": "checkpoint",
-    "resume_state": "experiments/sr_vctk_220522_233633/checkpoint/I90000_E4091"
+    "resume_state": "/cs/labs/adiyoss/moshemandel/sr3-audio/code/experiments/sr_vctk_220522_233633/checkpoint/I90000_E4091"
     // "resume_state": "experiments/sr_ffhq_210806_204158/checkpoint/I640000_E37" //pretrain model or training state
   },
   "datasets": {
@@ -106,8 +109,6 @@
     }
   },
   "wandb": {
-    "project": "sr3-audio",
-    "group": "single-speaker-8-16",
-    "name": "init"
+    "project": "sr_vctk"
   }
 }
