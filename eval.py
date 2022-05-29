@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--sr', type=int, default=16000)
     args = parser.parse_args()
     real_names = list(glob.glob('{}/*_hr.wav'.format(args.path)))
-    fake_names = list(glob.glob('{}/*_sr.wav'.format(args.path)))
+    fake_names = list(glob.glob('{}/*_pr.wav'.format(args.path)))
 
     real_names.sort()
     fake_names.sort()
@@ -28,12 +28,13 @@ if __name__ == "__main__":
     for rname, fname in zip(real_names, fake_names):
         idx += 1
         ridx = rname.rsplit("_hr")[0]
-        fidx = fname.rsplit("_sr")[0]
+        fidx = fname.rsplit("_pr")[0]
         assert ridx == fidx, 'Image ridx:{ridx}!=fidx:{fidx}'.format(
             ridx, fidx)
 
         hr_audio, _ = torchaudio.load(rname)
         sr_audio, _ = torchaudio.load(fname)
+        hr_audio = Metrics.tensor2audio(hr_audio)
         sr_audio = Metrics.tensor2audio(sr_audio)
         sisnr = Metrics.calculate_sisnr(sr_audio, hr_audio)
         lsd = Metrics.calculate_lsd(sr_audio, hr_audio)

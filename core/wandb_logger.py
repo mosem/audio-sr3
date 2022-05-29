@@ -48,30 +48,49 @@ class WandbLogger:
 
         # Initialize a W&B run
         if self._wandb.run is None:
-            self._wandb.init(
-                project=opt['wandb']['project'],
-                entity=WANDB_ENTITY,
-                config=opt,
-                group=opt['wandb']['group'],
-                name=opt['wandb']['name'],
-                dir='./experiments'
-            )
+            if 'id' in opt['wandb']:
+                self._wandb.init(
+                    id=opt['wandb']['id'],
+                    resume='must',
+                    project=opt['wandb']['project'],
+                    entity=WANDB_ENTITY,
+                    config=opt,
+                    group=opt['wandb']['group'],
+                    name=opt['wandb']['name'],
+                    dir='./experiments',
+                )
+            else:
+                self._wandb.init(
+                    project=opt['wandb']['project'],
+                    entity=WANDB_ENTITY,
+                    config=opt,
+                    group=opt['wandb']['group'],
+                    name=opt['wandb']['name'],
+                    dir='./experiments'
+                )
 
         self.config = self._wandb.config
 
         if self.config.get('log_eval', None):
-            self.eval_table = self._wandb.Table(columns=['fake_image', 
-                                                         'sr_image', 
-                                                         'hr_image',
-                                                         'psnr',
-                                                         'ssim'])
+            self.eval_table = self._wandb.Table(columns=['fake_audio',
+                                                         'sr_audio',
+                                                         'hr_audio',
+                                                         'fake_spec',
+                                                         'sr_spec',
+                                                         'hr_spec',
+                                                         'sisnr',
+                                                         'lsd',
+                                                         'visqol'])
         else:
             self.eval_table = None
 
         if self.config.get('log_infer', None):
             self.infer_table = self._wandb.Table(columns=['fake_image', 
-                                                         'sr_image', 
-                                                         'hr_image'])
+                                                          'sr_image',
+                                                          'hr_image',
+                                                          'fake_spec',
+                                                          'sr_spec',
+                                                          'hr_spec'])
         else:
             self.infer_table = None
 
@@ -83,7 +102,7 @@ class WandbLogger:
         """
         self._wandb.log(metrics, commit=commit)
 
-    def log_audio(self, filename, pr_signal, hr_signal, lr_signal, lsd, sisnr, visqol, epoch, sr):
+    def log_audio(self, filename, pr_signal, hr_signal, lr_signal, sisnr, lsd, visqol, epoch, sr):
         spectrogram_transform = Spectrogram()
         enhanced_spectrogram = spectrogram_transform(pr_signal).log2()[0, :, :].numpy()
         enhanced_spectrogram_wandb_image = self._wandb.Image(convert_spectrogram_to_heatmap(enhanced_spectrogram),

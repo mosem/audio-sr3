@@ -73,6 +73,7 @@ if __name__ == "__main__":
         diffusion.feed_data(val_data)
         diffusion.test(continous=True)
         visuals = diffusion.get_current_visuals(need_LR=False)
+        filename = val_data['Filename'][0]
 
         hr_audio = Metrics.tensor2audio(visuals['HR'])
         fake_audio = Metrics.tensor2audio(visuals['INF'])
@@ -85,19 +86,19 @@ if __name__ == "__main__":
             for iter in range(0, sample_num-1):
                 Metrics.save_audio(
                     Metrics.tensor2audio(sr_audio[iter]),
-                    '{}/{}_{}_sr_process_{}.wav'.format(result_path, current_step, idx, iter), hr_sr)
+                    '{}/{}_pr_process_{}.wav'.format(result_path, filename, iter), hr_sr)
 
         Metrics.save_audio(
             Metrics.tensor2audio(sr_audio[-1]),
-            '{}/{}_{}_sr.wav'.format(result_path, current_step, idx), hr_sr)
+            '{}/{}_pr.wav'.format(result_path, filename), hr_sr)
 
         Metrics.save_audio(
-            hr_audio, '{}/{}_{}_hr.wav'.format(result_path, current_step, idx), hr_sr)
+            hr_audio, '{}/{}_hr.wav'.format(result_path, filename), hr_sr)
         Metrics.save_audio(
-            fake_audio, '{}/{}_{}_inf.wav'.format(result_path, current_step, idx), hr_sr)
+            fake_audio, '{}/{}_lr.wav'.format(result_path, filename), hr_sr)
 
         if wandb_logger and opt['log_infer']:
-            wandb_logger.log_eval_data(fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
+            wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio, hr_sr)
 
     if wandb_logger and opt['log_infer']:
         wandb_logger.log_eval_table(commit=True)

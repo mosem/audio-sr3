@@ -79,8 +79,8 @@ class LRHRAudioDataset(Dataset):
 
     def __getitem__(self, index):
 
-        hr_sig = self.hr_set[index]
-        sr_sig = self.sr_set[index]
+        hr_sig, hr_filename = self.hr_set[index]
+        sr_sig, sr_filename = self.sr_set[index]
 
         hr_sig = match_hr_signal_to_sr_sig(hr_sig, sr_sig)
 
@@ -90,9 +90,9 @@ class LRHRAudioDataset(Dataset):
             sr_sig = F.pad(sr_sig, (0, sig_len - sr_sig.shape[-1]))
 
         if self.need_LR:
-            lr_sig = self.lr_set[index]
+            lr_sig, lr_filename = self.lr_set[index]
             # augment?
-            return {'LR': lr_sig, 'HR': hr_sig, 'SR': sr_sig, 'Index': index}
+            return {'LR': lr_sig, 'HR': hr_sig, 'SR': sr_sig, 'Filename': hr_filename}
         else:
             # augment?
-            return {'HR': hr_sig, 'SR': sr_sig, 'Index': index}
+            return {'HR': hr_sig, 'SR': sr_sig, 'Filename': hr_filename}

@@ -3,6 +3,7 @@
 import math
 import torchaudio
 from torch.nn import functional as F
+from pathlib import Path
 
 
 class Audioset:
@@ -59,4 +60,4 @@ class Audioset:
             if num_frames:
                 out = F.pad(out, (0, num_frames - out.shape[-1]))
 
-            return out
+            return out, Path(file).stem
