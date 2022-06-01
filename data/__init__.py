@@ -4,7 +4,7 @@ from re import split
 import torch.utils.data
 
 
-def create_dataloader(dataset, dataset_opt, phase):
+def create_dataloader(dataset, dataset_opt, phase,sampler=None,collate_fn=None):
     '''create dataloader '''
     if phase == 'train':
         return torch.utils.data.DataLoader(
@@ -14,8 +14,9 @@ def create_dataloader(dataset, dataset_opt, phase):
             num_workers=dataset_opt['num_workers'],
             pin_memory=True)
     elif phase == 'val':
+        batch_size = dataset_opt['batch_size'] if 'batch_size' in dataset_opt else 1
         return torch.utils.data.DataLoader(
-            dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
+            dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True,sampler=sampler,collate_fn=collate_fn)
     else:
         raise NotImplementedError(
             'Dataloader [{:s}] is not found.'.format(phase))

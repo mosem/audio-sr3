@@ -15,6 +15,7 @@ class Audioset:
         """
         self.files = files
         self.num_examples = []
+        self.file_lengths = []
         self.length = length
         self.stride = stride or length
         self.sample_rate = sample_rate
@@ -23,13 +24,22 @@ class Audioset:
         for file, file_length in self.files:
             if length is None:
                 examples = 1
+                self.file_lengths.append(file_length)
             elif file_length < length:
                 examples = 1 if pad else 0
+                if pad:
+                    self.file_lengths.append(file_length)
             elif pad:
                 examples = int(math.ceil((file_length - self.length) / self.stride) + 1)
+                self.file_lengths.extend([self.length]*examples)
             else:
                 examples = (file_length - self.length) // self.stride + 1
+                self.file_lengths.extend([self.length] * examples)
             self.num_examples.append(examples)
+
+
+    def get_file_lengths(self):
+        return self.file_lengths
 
     def __len__(self):
         return sum(self.num_examples)

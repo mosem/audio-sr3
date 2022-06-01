@@ -74,6 +74,9 @@ class LRHRAudioDataset(Dataset):
             self.data_len = min(self.data_len, self.dataset_len)
 
 
+    def get_file_lengths(self):
+        return self.hr_set.get_file_lengths()
+
     def __len__(self):
         return self.data_len
 
@@ -84,6 +87,8 @@ class LRHRAudioDataset(Dataset):
 
         hr_sig = match_hr_signal_to_sr_sig(hr_sig, sr_sig)
 
+        hr_length = hr_sig.shape[-1]
+
         if self.split == 'val':
             sig_len = compute_output_length(hr_sig.shape[-1], 5)
             hr_sig = F.pad(hr_sig, (0, sig_len - hr_sig.shape[-1]))
@@ -92,7 +97,7 @@ class LRHRAudioDataset(Dataset):
         if self.need_LR:
             lr_sig, lr_filename = self.lr_set[index]
             # augment?
-            return {'LR': lr_sig, 'HR': hr_sig, 'SR': sr_sig, 'Filename': hr_filename}
+            return {'LR': lr_sig, 'HR': hr_sig, 'SR': sr_sig, 'filename': hr_filename, 'length': hr_length}
         else:
             # augment?
-            return {'HR': hr_sig, 'SR': sr_sig, 'Filename': hr_filename}
+            return {'HR': hr_sig, 'SR': sr_sig, 'filename': hr_filename, 'length': hr_length}

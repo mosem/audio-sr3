@@ -11,8 +11,8 @@
     "tb_logger": "tb_logger",
     "results": "results",
     "checkpoint": "checkpoint",
-    "experiments_root": "experiments/sr_vctk_220529_215613",
-    "resume_state": "experiments/sr_vctk_220529_213947/checkpoint/I400_E3"
+//    "experiments_root": "experiments/sr_vctk_220531_115556",
+    "resume_state": "experiments/sr_vctk_220524_143533/checkpoint/I620000_E185"
     // "resume_state": "experiments/sr_ffhq_210806_204158/checkpoint/I640000_E37" //pretrain model or training state
   },
   "datasets": {
@@ -20,7 +20,7 @@
       "name": "VCTK",
       "mode": "HR",
       // whether need LR img
-      "json_dir": "egs/vctk/single-speaker/8000-16000/tr",
+      "json_dir": "egs/vctk/multi-speaker/8-16/tr",
       "lr_sr": 8000,
       // low resolution need to super_resolution
       "hr_sr": 16000,
@@ -29,7 +29,7 @@
       // in seconds, how much to stride between training examples
       "segment": 2,
       // in seconds, what length is each training example
-      "batch_size": 4,
+      "batch_size": 28,
       "num_workers": 8,
       "use_shuffle": true,
       "data_len": -1
@@ -38,12 +38,11 @@
     "val": {
       "name": "VCTK",
       "mode": "LRHR",
-      "json_dir": "egs/vctk/single-speaker/8000-16000/val",
+      "json_dir": "egs/vctk/multi-speaker/8-16/val",
       "lr_sr": 8000,
       // low resolution need to super_resolution
       "hr_sr": 16000,
-      "batch_size": 4,
-      "data_len": 50
+      "data_len": -1
       // data length in validation
     }
   },
@@ -72,13 +71,13 @@
       // use munual beta_schedule for acceleration
       "train": {
         "schedule": "linear",
-        "n_timestep": 100,
+        "n_timestep": 2000,
         "linear_start": 1e-6,
         "linear_end": 1e-2
       },
       "val": {
         "schedule": "linear",
-        "n_timestep": 100,
+        "n_timestep": 500,
         "linear_start": 1e-6,
         "linear_end": 1e-2
       }
@@ -92,10 +91,10 @@
     }
   },
   "train": {
-    "n_iter": 400,
-    "val_freq": 100,
+    "n_iter": 1000000,
+    "val_freq": 1e4,
     "save_checkpoint_freq": 1e4,
-    "print_freq": 100,
+    "print_freq": 200,
     "optimizer": {
       "type": "adam",
       "lr": 1e-4
@@ -109,8 +108,7 @@
   },
   "wandb": {
     "project": "sr3-audio",
-    "group": "single-speaker-8-16",
-    "name": "dummy-infer",
-    "id": "jcfgssyt"
+    "group": "multi-speaker-8-16",
+    "name": "init-validation-500-steps"
   }
 }

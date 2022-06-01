@@ -34,9 +34,12 @@ def parse(args):
     # set log directory
     if args.debug:
         opt['name'] = 'debug_{}'.format(opt['name'])
-    experiments_root = os.path.join(
-        'experiments', '{}_{}'.format(opt['name'], get_timestamp()))
-    opt['path']['experiments_root'] = experiments_root
+    if 'experiments_root' not in opt['path']:
+        experiments_root = os.path.join(
+            'experiments', '{}_{}'.format(opt['name'], get_timestamp()))
+        opt['path']['experiments_root'] = experiments_root
+    else:
+        experiments_root = opt['path']['experiments_root']
     for key, path in opt['path'].items():
         if 'resume' not in key and 'experiments' not in key:
             opt['path'][key] = os.path.join(experiments_root, path)

@@ -109,6 +109,8 @@
     }
   },
   "wandb": {
-    "project": "sr_vctk"
+    "project": "sr3-audio",
+    "group": "single-speaker-8-16",
+    "name": "init-infer"
   }
 }

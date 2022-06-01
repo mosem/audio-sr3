@@ -185,7 +185,7 @@ class GaussianDiffusion(nn.Module):
                           total=self.num_timesteps):
                 img = self.p_sample(img, i)
                 if i % sample_inter == 0:
-                    ret_img = torch.cat([ret_img, img], dim=0)
+                    ret_img = torch.cat([ret_img, img], dim=1)
         else:
             x = x_in
             shape = x.shape
@@ -195,7 +195,7 @@ class GaussianDiffusion(nn.Module):
                           total=self.num_timesteps):
                 img = self.p_sample(img, i, condition_x=x)
                 if i % sample_inter == 0:
-                    ret_img = torch.cat([ret_img, img], dim=0)
+                    ret_img = torch.cat([ret_img, img], dim=1)
         if continous:
             return ret_img
         else:

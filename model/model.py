@@ -64,8 +64,10 @@ class DDPM(BaseModel):
                 self.SR = self.netG.module.super_resolution(
                     self.data['SR'], continous)
             else:
-                self.SR = self.netG.super_resolution(
+                sr = self.data['SR']
+                new_sr = self.netG.super_resolution(
                     self.data['SR'], continous)
+                self.SR = new_sr
         self.netG.train()
 
     def sample(self, batch_size=1, continous=False):

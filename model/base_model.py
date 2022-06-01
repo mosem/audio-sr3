@@ -29,7 +29,7 @@ class BaseModel():
     def set_device(self, x):
         if isinstance(x, dict):
             for key, item in x.items():
-                if item is not None and key != 'Filename':
+                if item is not None and key != 'filename' and key != 'length':
                     x[key] = item.to(self.device)
         elif isinstance(x, list):
             for item in x:

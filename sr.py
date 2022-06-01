@@ -133,7 +133,7 @@ if __name__ == "__main__":
                         lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
                         fake_audio = Metrics.tensor2audio(visuals['INF'])  # uint8
 
-                        filename = val_data['Filename'][0]
+                        filename = val_data['filename'][0]
 
                         # generation
                         Metrics.save_audio(
@@ -215,7 +215,7 @@ if __name__ == "__main__":
             diffusion.test(continous=True)
             visuals = diffusion.get_current_visuals()
 
-            filename = val_data['Filename'][0]
+            filename = val_data['filename'][0]
 
             hr_audio = Metrics.tensor2audio(visuals['HR'])  # uint8
             lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
