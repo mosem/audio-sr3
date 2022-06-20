@@ -4,7 +4,7 @@
 
 cd /cs/labs/adiyoss/moshemandel/sr3-audio/code
 
-python infer.py -c config/vctk_8_16/multi/sr_sr3_multi_8000_16000_infer.json \
+python infer.py -c config/vctk_8_16/multi/sr_sr3_multi_8000_16000_infer_full.json \
                 -enable_wandb \
                 -log_infer \
 

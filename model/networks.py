@@ -44,7 +44,7 @@ def weights_init_kaiming(m, scale=1):
 
 def weights_init_orthogonal(m):
     classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
+    if classname.find('Conv') != -1 and classname != 'DConv':
         init.orthogonal_(m.weight.data, gain=1)
         if m.bias is not None:
             m.bias.data.zero_()
@@ -88,19 +88,28 @@ def define_G(opt):
         from .sr3_modules import diffusion, unet
     elif model_opt['which_model_G'] == 'audio-sr3':
         from .audio_modules import diffusion, unet
+    elif model_opt['which_model_G'] == 'audio-hdemucs':
+        from .audio_modules import diffusion, hdemucs
     if ('norm_groups' not in model_opt['unet']) or model_opt['unet']['norm_groups'] is None:
         model_opt['unet']['norm_groups']=32
-    model = unet.UNet(
-        in_channel=model_opt['unet']['in_channel'],
-        out_channel=model_opt['unet']['out_channel'],
-        norm_groups=model_opt['unet']['norm_groups'],
-        inner_channel=model_opt['unet']['inner_channel'],
-        channel_mults=model_opt['unet']['channel_multiplier'],
-        attn_res=model_opt['unet']['attn_res'],
-        res_blocks=model_opt['unet']['res_blocks'],
-        dropout=model_opt['unet']['dropout'],
-        image_size=model_opt['diffusion']['image_size']
-    )
+
+    if model_opt['which_model_G'] == 'audio-hdemucs':
+        model = hdemucs.HDemucs(in_channels=model_opt['hdemucs']['in_channels'],
+                                out_channels=model_opt['hdemucs']['out_channels'],
+                                channels=model_opt['hdemucs']['channels'])
+    else:
+        model = unet.UNet(
+            in_channel=model_opt['unet']['in_channel'],
+            out_channel=model_opt['unet']['out_channel'],
+            norm_groups=model_opt['unet']['norm_groups'],
+            inner_channel=model_opt['unet']['inner_channel'],
+            channel_mults=model_opt['unet']['channel_multiplier'],
+            attn_res=model_opt['unet']['attn_res'],
+            res_blocks=model_opt['unet']['res_blocks'],
+            dropout=model_opt['unet']['dropout'],
+            image_size=model_opt['diffusion']['image_size']
+        )
+
     netG = diffusion.GaussianDiffusion(
         model,
         image_size=model_opt['diffusion']['image_size'],

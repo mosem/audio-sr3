@@ -11,7 +11,7 @@
     "tb_logger": "tb_logger",
     "results": "results",
     "checkpoint": "checkpoint",
-//    "experiments_root": "experiments/sr_vctk_220531_115556",
+    "experiments_root": "experiments/sr_vctk_220531_184521",
     "resume_state": "experiments/sr_vctk_220524_143533/checkpoint/I620000_E185"
     // "resume_state": "experiments/sr_ffhq_210806_204158/checkpoint/I640000_E37" //pretrain model or training state
   },
@@ -109,6 +109,7 @@
   "wandb": {
     "project": "sr3-audio",
     "group": "multi-speaker-8-16",
-    "name": "init-validation-500-steps"
+    "name": "init-validation-500-steps",
+    "id": "2zjevvy8"
   }
 }

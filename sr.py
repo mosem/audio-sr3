@@ -128,7 +128,7 @@ if __name__ == "__main__":
                         diffusion.test(continous=False)
                         visuals = diffusion.get_current_visuals()
 
-                        sr_audio = Metrics.tensor2audio(visuals['SR'])  # uint8
+                        sr_audio = Metrics.tensor2audio(visuals['SR'])[0, -1:, :]  # uint8
                         hr_audio = Metrics.tensor2audio(visuals['HR'])  # uint8
                         lr_audio = Metrics.tensor2audio(visuals['LR'])  # uint8
                         fake_audio = Metrics.tensor2audio(visuals['INF'])  # uint8
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                         Metrics.save_audio(
                             hr_audio, '{}/{}_hr.wav'.format(result_path, filename), hr_sr)
                         Metrics.save_audio(
-                            sr_audio, '{}/{}_sr.wav'.format(result_path, filename), hr_sr)
+                                sr_audio, '{}/{}_sr.wav'.format(result_path, filename), hr_sr)
                         Metrics.save_audio(
                             lr_audio, '{}/{}_lr.wav'.format(result_path, filename), lr_sr)
                         Metrics.save_audio(
@@ -226,13 +226,13 @@ if __name__ == "__main__":
             sr_img_mode = 'grid'
             if sr_img_mode == 'grid':
                 sample_num = sr_audio.shape[0]
-                for iter in range(0, sample_num - 1):
+                for sample_idx in range(0, sample_num - 1):
                     Metrics.save_audio(
-                        Metrics.tensor2audio(sr_audio[iter]),
-                        '{}/{}_pr_process_{}.wav'.format(result_path, filename, iter), hr_sr)
+                        Metrics.tensor2audio(sr_audio[0, sample_idx:sample_idx + 1, :]),
+                        '{}/{}_pr_process_{}.wav'.format(result_path, filename, sample_idx), hr_sr)
 
             Metrics.save_audio(
-                Metrics.tensor2audio(sr_audio[-1]),
+                Metrics.tensor2audio(sr_audio[0, -1:, :]),
                 '{}/{}_pr.wav'.format(result_path, filename), hr_sr)
 
             # sr_img_mode = 'grid'
@@ -260,16 +260,16 @@ if __name__ == "__main__":
 
 
             # generation
-            eval_sisnr = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
-            eval_lsd = Metrics.calculate_lsd(Metrics.tensor2audio(visuals['SR'][-1]), hr_audio)
-            eval_visqol = Metrics.calculate_visqol(Metrics.tensor2audio(visuals['SR'][-1]).numpy(), hr_audio.numpy(), filename, hr_sr)
+            eval_sisnr = Metrics.calculate_sisnr(Metrics.tensor2audio(visuals['SR'])[0, -1:, :], hr_audio)
+            eval_lsd = Metrics.calculate_lsd(Metrics.tensor2audio(visuals['SR'])[0, -1:, :], hr_audio)
+            eval_visqol = Metrics.calculate_visqol(Metrics.tensor2audio(visuals['SR'])[0, -1:, :].numpy(), hr_audio.numpy(), filename, hr_sr)
 
             avg_sisnr += eval_sisnr
             avg_lsd += eval_lsd
             avg_visqol += eval_visqol
 
             if wandb_logger and opt['log_eval']:
-                wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio,
+                wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(visuals['SR'])[0, -1:, :], hr_audio,
                                            hr_sr,
                                            eval_sisnr, eval_lsd, eval_visqol)
 

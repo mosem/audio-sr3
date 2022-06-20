@@ -50,9 +50,9 @@ if __name__ == "__main__":
         if phase == 'val':
             val_set = Data.create_dataset(dataset_opt, phase)
             sampler = SequentialBinSampler(val_set.get_file_lengths())
-            logger.info(f'sampler indices: {sampler.indices_sorted_by_len}')
+            # logger.info(f'sampler indices: {sampler.indices_sorted_by_len}')
             # val_loader = Data.create_dataloader(
-            #     val_set, dataset_opt, phase)
+            #    val_set, dataset_opt, phase)
             val_loader = Data.create_dataloader(
                 val_set, dataset_opt, phase,sampler,collate_fn)
     logger.info('Initial Dataset Finished')
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 fake_audio, '{}/{}_lr.wav'.format(result_path, filename), hr_sr)
 
             if wandb_logger and opt['log_infer']:
-                wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(visuals['SR'][-1]), hr_audio, hr_sr)
+                wandb_logger.log_eval_data(filename, fake_audio, Metrics.tensor2audio(sr_audio[i, -1:, :]), hr_audio, hr_sr)
 
     logger.info(f'Done. Processed {n_processed_files}/{len(val_loader)} files.')
 
