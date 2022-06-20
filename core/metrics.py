@@ -9,6 +9,9 @@ from torchvision.utils import make_grid
 import torchaudio
 import torch
 
+from pesq import pesq
+from pystoi import stoi
+
 import logging
 
 logger = logging.getLogger('base')
@@ -23,6 +26,38 @@ def tensor2audio(tensor, min_max=(-1, 1)):
 def save_audio(wav, filename, sr):
     wav = wav / max(wav.abs().max().item(), 1)
     torchaudio.save(filename, wav.cpu(), sr)
+
+
+def calculate_pesq(out_sig, ref_sig, sr):
+    """Calculate PESQ.
+    Args:
+        ref_sig: numpy.ndarray, [B, T]
+        out_sig: numpy.ndarray, [B, T]
+    Returns:
+        PESQ
+    """
+    pesq_val = 0
+    if sr not in [8000, 16000]:
+        return pesq_val
+    for i in range(len(ref_sig)):
+        mode = 'wb' if sr == 16000 else 'nb'
+        tmp = pesq(sr, ref_sig[i], out_sig[i], mode)  # from pesq
+        pesq_val += tmp
+    return pesq_val
+
+
+def calculate_stoi(out_sig, ref_sig, sr):
+    """Calculate STOI.
+    Args:
+        ref_sig: numpy.ndarray, [B, T]
+        out_sig: numpy.ndarray, [B, T]
+    Returns:
+        STOI
+    """
+    stoi_val = 0
+    for i in range(len(ref_sig)):
+        stoi_val += stoi(ref_sig[i], out_sig[i], sr, extended=True)
+    return stoi_val
 
 
 def calculate_sisnr(out_sig, ref_sig, eps=1e-8):

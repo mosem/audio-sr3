@@ -72,12 +72,14 @@ class WandbLogger:
         self.config = self._wandb.config
 
         if self.config.get('log_eval', None):
-            self.eval_table = self._wandb.Table(columns=['fake_audio',
-                                                         'sr_audio',
+            self.eval_table = self._wandb.Table(columns=['lr_audio',
+                                                         'pr_audio',
                                                          'hr_audio',
-                                                         'fake_spec',
-                                                         'sr_spec',
+                                                         'lr_spec',
+                                                         'pr_spec',
                                                          'hr_spec',
+                                                         'pesq',
+                                                         'stoi',
                                                          'sisnr',
                                                          'lsd',
                                                          'visqol'])
@@ -85,11 +87,11 @@ class WandbLogger:
             self.eval_table = None
 
         if self.config.get('log_infer', None):
-            self.infer_table = self._wandb.Table(columns=['fake_image', 
-                                                          'sr_image',
-                                                          'hr_image',
-                                                          'fake_spec',
-                                                          'sr_spec',
+            self.infer_table = self._wandb.Table(columns=['lr_audio',
+                                                          'pr_audio',
+                                                          'hr_audio',
+                                                          'lr_spec',
+                                                          'pr_spec',
                                                           'hr_spec'])
         else:
             self.infer_table = None
@@ -175,7 +177,7 @@ class WandbLogger:
         model_artifact.add_file(opt_path)
         self._wandb.log_artifact(model_artifact, aliases=["latest"])
 
-    def log_eval_data(self, filename, fake_audio, sr_audio, hr_audio, sr, sisnr=None, lsd=None, visqol=None):
+    def log_eval_data(self, filename, fake_audio, sr_audio, hr_audio, sr, pesq=None, stoi=None, sisnr=None, lsd=None, visqol=None):
         """
         Add data row-wise to the initialized table.
         """
@@ -194,7 +196,7 @@ class WandbLogger:
         lr_wandb_audio = self._wandb.Audio(fake_audio.squeeze().numpy(), sample_rate=sr, caption=filename + '_lr')
         sr_wandb_audio = self._wandb.Audio(sr_audio.squeeze().numpy(), sample_rate=sr, caption=filename + '_pr')
 
-        if sisnr is not None and lsd is not None and visqol is not None:
+        if pesq is not None and stoi is not None and sisnr is not None and lsd is not None and visqol is not None:
             self.eval_table.add_data(
                 lr_wandb_audio,
                 sr_wandb_audio,
@@ -202,6 +204,8 @@ class WandbLogger:
                 lr_wandb_spec,
                 sr_audio_wandb_spec,
                 hr_audio_wandb_spec,
+                pesq,
+                stoi,
                 sisnr,
                 lsd,
                 visqol

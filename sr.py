@@ -235,22 +235,6 @@ if __name__ == "__main__":
                 Metrics.tensor2audio(sr_audio[0, -1:, :]),
                 '{}/{}_pr.wav'.format(result_path, filename), hr_sr)
 
-            # sr_img_mode = 'grid'
-            # if sr_img_mode == 'single':
-            #     # single img series
-            #     sr_audio = visuals['SR']  # uint8
-            #     sample_num = sr_audio.shape[0]
-            #     for iter in range(0, sample_num):
-            #         Metrics.save_audio(
-            #             Metrics.tensor2audio(sr_audio[iter]), '{}/{}_{}_sr_{}.wav'.format(result_path, current_step, idx, iter), hr_sr)
-            # else:
-            #     # grid img
-            #     sr_audio = Metrics.tensor2audio(visuals['SR'])  # uint8
-            #     Metrics.save_audio(
-            #         sr_audio[-1], '{}/{}_{}_sr_process.wav'.format(result_path, current_step, idx), hr_sr)
-            #     Metrics.save_audio(
-            #         Metrics.tensor2audio(visuals['SR'][-1]), '{}/{}_{}_sr.wav'.format(result_path, current_step, idx), hr_sr)
-
             Metrics.save_audio(
                 hr_audio, '{}/{}_hr.wav'.format(result_path, filename), hr_sr)
             Metrics.save_audio(

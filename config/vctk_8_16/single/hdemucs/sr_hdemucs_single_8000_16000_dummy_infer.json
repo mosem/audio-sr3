@@ -1,0 +1,120 @@
+{
+  "name": "sr_vctk",
+  "phase": "train",
+  // train or val
+  "gpu_ids": [
+    0
+  ],
+  "path": {
+    //set the path
+    "log": "logs",
+    "tb_logger": "tb_logger",
+    "results": "results",
+    "checkpoint": "checkpoint",
+    "experiments_root": "experiments/sr_vctk_220620_193847",
+    "resume_state": "experiments/sr_vctk_220620_193847/checkpoint/I400_E2"
+    // "resume_state": "experiments/sr_ffhq_210806_204158/checkpoint/I640000_E37" //pretrain model or training state
+  },
+  "datasets": {
+    "train": {
+      "name": "VCTK",
+      "mode": "HR",
+      // whether need LR img
+      "json_dir": "egs/vctk/single-speaker/8000-16000/tr",
+      "lr_sr": 8000,
+      // low resolution need to super_resolution
+      "hr_sr": 16000,
+      // high resolution
+      "stride": 2,
+      // in seconds, how much to stride between training examples
+      "segment": 2,
+      // in seconds, what length is each training example
+      "batch_size": 2,
+      "num_workers": 8,
+      "use_shuffle": true,
+      "data_len": -1
+      // -1 represents all data used in train
+    },
+    "val": {
+      "name": "VCTK",
+      "mode": "LRHR",
+      "json_dir": "egs/vctk/single-speaker/8000-16000/val",
+      "lr_sr": 8000,
+      // low resolution need to super_resolution
+      "hr_sr": 16000,
+      "batch_size": 2,
+      "data_len": 50
+      // data length in validation
+    }
+  },
+  "model": {
+    "which_model_G": "audio-hdemucs",
+    // use the ddpm or sr3 network structure
+    "finetune_norm": false,
+    "hdemucs" : {
+      "in_channels": 2,
+      "out_channels": 1,
+      "channels": 48
+    },
+    "unet": {
+      "in_channel": 2,
+      "out_channel": 1,
+      "inner_channel": 64,
+      "channel_multiplier": [
+        1,
+        2,
+        4,
+        8,
+        8
+      ],
+      "attn_res": [
+        16
+      ],
+      "res_blocks": 2,
+      "dropout": 0.2
+    },
+    "beta_schedule": {
+      // use munual beta_schedule for acceleration
+      "train": {
+        "schedule": "linear",
+        "n_timestep": 100,
+        "linear_start": 1e-6,
+        "linear_end": 1e-2
+      },
+      "val": {
+        "schedule": "linear",
+        "n_timestep": 100,
+        "linear_start": 1e-6,
+        "linear_end": 1e-2
+      }
+    },
+    "diffusion": {
+      "image_size": 128,
+      "channels": 3,
+      //sample channel
+      "conditional": true
+      // unconditional generation or unconditional generation(super_resolution)
+    }
+  },
+  "train": {
+    "n_iter": 400,
+    "val_freq": 100,
+    "save_checkpoint_freq": 100,
+    "print_freq": 100,
+    "optimizer": {
+      "type": "adam",
+      "lr": 1e-4
+    },
+    "ema_scheduler": {
+      // not used now
+      "step_start_ema": 5000,
+      "update_ema_every": 1,
+      "ema_decay": 0.9999
+    }
+  },
+  "wandb": {
+    "project": "sr3-audio",
+    "group": "single-speaker-8-16",
+    "name": "dummy"
+  }
+}
